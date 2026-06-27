@@ -9,3 +9,30 @@ load: POSTWORLD
 
 authors: [ Newt_00 ]
 website: ycs.newt-tech.com
+
+commands:
+  jail:
+    description: Jails a player
+  unjail:
+    description: Releases a player
+
+  freeze:
+    description: Freezes a player
+  unfreeze:
+    description: Unfreezes a player
+
+  seen:
+    description: Seen system
+  ntafk:
+    description: AFK toggle/status
+  unbreakable:
+    permission: ntu.admin
+  repair:
+    permission: ntu.admin
+  ench:
+    permission: ntu.admin
+  dench:
+    permission: ntu.admin
+  modify:
+    permission: ntu.admin
+    description: modify item meta

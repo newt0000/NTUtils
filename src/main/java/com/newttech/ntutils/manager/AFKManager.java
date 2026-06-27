@@ -1,116 +1,111 @@
 package com.newttech.ntutils.manager;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class AFKManager {
 
     private final JavaPlugin plugin;
 
-    private final Map<UUID, Long> lastActivity = new ConcurrentHashMap<>();
-    private final Set<UUID> afkPlayers = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, Location> returnLocations = new HashMap<>();
+    private final Map<UUID, Location> afkLocations = new HashMap<>();
+    private final Map<UUID, Boolean> afkState = new HashMap<>();
 
-    private final long afkThresholdMillis;
-    private BukkitTask task;
-
-    public AFKManager(JavaPlugin plugin, long afkThresholdMillis) {
+    public AFKManager(JavaPlugin plugin) {
         this.plugin = plugin;
-        this.afkThresholdMillis = afkThresholdMillis;
-
-        startTask();
     }
 
     /* -------------------------
-       Activity tracking
+       Toggle AFK
        ------------------------- */
 
-    public void markActive(Player player) {
+    public void toggle(Player player) {
         UUID uuid = player.getUniqueId();
 
-        lastActivity.put(uuid, System.currentTimeMillis());
-
-        if (afkPlayers.contains(uuid)) {
-            setAFK(player, false);
+        if (isAFK(player)) {
+            disable(player);
+        } else {
+            enable(player);
         }
     }
-
-    public void markJoin(Player player) {
-        markActive(player);
-    }
-
-    public void markQuit(Player player) {
-        UUID uuid = player.getUniqueId();
-        lastActivity.remove(uuid);
-        afkPlayers.remove(uuid);
-    }
-
-    /* -------------------------
-       AFK state
-       ------------------------- */
 
     public boolean isAFK(Player player) {
-        return afkPlayers.contains(player.getUniqueId());
+        return afkState.getOrDefault(player.getUniqueId(), false);
     }
 
-    private void setAFK(Player player, boolean afk) {
+    /* -------------------------
+       Enable AFK
+       ------------------------- */
+
+    public void enable(Player player) {
+
         UUID uuid = player.getUniqueId();
 
-        if (afk) {
-            afkPlayers.add(uuid);
-            player.setPlayerListName("[AFK] " + player.getName());
-        } else {
-            afkPlayers.remove(uuid);
-            player.setPlayerListName(player.getName());
+        // save return location
+        returnLocations.put(uuid, player.getLocation().clone());
+
+        // save AFK spot (config teleport handled in command or here)
+        afkState.put(uuid, true);
+    }
+
+    /* -------------------------
+       Disable AFK
+       ------------------------- */
+
+    public void disable(Player player) {
+
+        UUID uuid = player.getUniqueId();
+
+        Location returnLoc = returnLocations.remove(uuid);
+
+        afkState.remove(uuid);
+
+        if (returnLoc != null) {
+            player.teleport(returnLoc);
         }
     }
 
     /* -------------------------
-       Loop enforcement
+       Movement check
        ------------------------- */
 
-    private void startTask() {
-        task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+    public void handleMove(Player player, Location from, Location to) {
 
-            long now = System.currentTimeMillis();
+        UUID uuid = player.getUniqueId();
 
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                UUID uuid = player.getUniqueId();
+        if (!isAFK(player)) return;
 
-                long last = lastActivity.getOrDefault(uuid, now);
-                long idle = now - last;
-
-                if (idle >= afkThresholdMillis) {
-                    if (!afkPlayers.contains(uuid)) {
-                        setAFK(player, true);
-                    }
-                } else {
-                    if (afkPlayers.contains(uuid)) {
-                        setAFK(player, false);
-                    }
-                }
-            }
-
-        }, 20L, 20L);
+        if (from.distanceSquared(to) > 4) { // >2 blocks
+            disable(player);
+        }
     }
 
-    public void shutdown() {
-        if (task != null) task.cancel();
+    /* -------------------------
+       Chat break AFK
+       ------------------------- */
 
-        for (UUID uuid : afkPlayers) {
-            Player player = Bukkit.getPlayer(uuid);
-            if (player != null) {
-                player.setPlayerListName(player.getName());
-            }
+    public void handleChat(Player player) {
+        if (isAFK(player)) {
+            disable(player);
         }
+    }
 
-        afkPlayers.clear();
-        lastActivity.clear();
+    /* -------------------------
+       AFK teleport target
+       ------------------------- */
+
+    public Location getAFKLocation() {
+        return plugin.getConfig().getLocation("afk.location");
+    }
+    public void shutdown() {
+        returnLocations.clear();
+        afkLocations.clear();
+        afkState.clear();
     }
 }

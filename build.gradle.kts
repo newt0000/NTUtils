@@ -14,7 +14,6 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.2.build.+")
-    compileOnly("net.milkbowl.vault:VaultAPI:1.7")
     compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
 }
 
@@ -37,4 +36,12 @@ tasks {
             expand(props)
         }
     }
+}
+tasks.register<Exec>("bumpVersionScript") {
+    workingDir = rootDir
+    commandLine("cmd", "/c", "bump-version.bat")
+}
+
+tasks.jar {
+    finalizedBy("bumpVersionScript")
 }

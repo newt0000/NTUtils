@@ -15,28 +15,23 @@ public class PlayerActivityListener implements Listener {
 
     @EventHandler
     public void onMove(PlayerMoveEvent event) {
-        if (event.getFrom().distanceSquared(event.getTo()) > 0) {
-            afkManager.markActive(event.getPlayer());
-        }
-    }
 
-    @EventHandler
-    public void onInteract(PlayerInteractEvent event) {
-        afkManager.markActive(event.getPlayer());
+        if (event.getTo() == null) return;
+
+        afkManager.handleMove(
+                event.getPlayer(),
+                event.getFrom(),
+                event.getTo()
+        );
     }
 
     @EventHandler
     public void onChat(AsyncPlayerChatEvent event) {
-        afkManager.markActive(event.getPlayer());
+        afkManager.handleChat(event.getPlayer());
     }
 
     @EventHandler
-    public void onJoin(PlayerJoinEvent event) {
-        afkManager.markJoin(event.getPlayer());
-    }
-
-    @EventHandler
-    public void onQuit(PlayerQuitEvent event) {
-        afkManager.markQuit(event.getPlayer());
+    public void onInteract(PlayerInteractEvent event) {
+        afkManager.handleChat(event.getPlayer());
     }
 }

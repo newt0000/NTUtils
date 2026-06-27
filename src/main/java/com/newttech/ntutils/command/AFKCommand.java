@@ -16,13 +16,21 @@ public class AFKCommand implements CommandExecutor {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
 
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("Only players can use this.");
+            sender.sendMessage("Players only.");
             return true;
         }
 
-        afkManager.markActive(player);
+        if (afkManager.isAFK(player)) {
+            afkManager.disable(player);
+            player.sendMessage("AFK disabled.");
+        } else {
+            afkManager.enable(player);
 
-        player.sendMessage("AFK status refreshed.");
+            player.teleport(afkManager.getAFKLocation());
+
+            player.sendMessage("AFK enabled.");
+        }
+
         return true;
     }
 }

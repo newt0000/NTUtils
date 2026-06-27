@@ -1,0 +1,28 @@
+# NTUtils Innocents / Kill Fine Configuration
+# Defines punishment cost when killing specific entity types
+
+innocents:
+
+  ZOMBIE:
+    cost: 25.0
+
+  SKELETON:
+    cost: 30.0
+
+  CREEPER:
+    cost: 50.0
+
+  VILLAGER:
+    cost: 250.0
+
+  PLAYER:
+    cost: 500.0
+
+  COW:
+    cost: 5.0
+
+  SHEEP:
+    cost: 5.0
+
+  PIG:
+    cost: 5.0

@@ -1,6 +1,7 @@
 package com.newttech.ntutils;
 
 import com.newttech.ntutils.command.*;
+import com.newttech.ntutils.listener.AFKListener;
 import com.newttech.ntutils.listener.FreezeListener;
 import com.newttech.ntutils.listener.JailListener;
 import com.newttech.ntutils.listener.PlayerActivityListener;
@@ -8,6 +9,7 @@ import com.newttech.ntutils.manager.*;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
+import com.newttech.ntutils.manager.ItemModifierManager;
 
 import net.milkbowl.vault.economy.Economy;
 
@@ -24,6 +26,7 @@ public class NTUtils extends JavaPlugin {
     private FreezeManager freezeManager;
     private SeenManager seenManager;
     private AFKManager afkManager;
+    private ItemModifierManager itemModifierManager;
 
     public static NTUtils getInstance() {
         return instance;
@@ -38,29 +41,34 @@ public class NTUtils extends JavaPlugin {
 
         instance = this;
 
+        saveDefaultConfig();
+        FileConfiguration config = getConfig();
+
+        // economy FIRST
         if (!setupEconomy()) {
-            getLogger().severe("Vault was not found! Disabling.");
+            getLogger().severe("Vault not found! Disabling plugin.");
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
 
-        saveDefaultConfig();
-        FileConfiguration config = getConfig();
+        // managers (ONLY ONCE)
         configManager = new ConfigManager(this);
         innocentManager = new InnocentManager(this);
-        convictionManager = new ConvictionManager(config);
-        jailManager = new JailManager(
-                this,
-                config,
-                convictionManager
-        );
-        freezeManager = new FreezeManager(this);
-        seenManager = new SeenManager(this);
-        long afkThresholdMillis = config.getLong("afk.threshold-seconds", 300) * 1000L;
-        afkManager = new AFKManager(this, afkThresholdMillis);
 
-        registerManagers();
+        convictionManager = new ConvictionManager(config);
+
+        jailManager = new JailManager(this, config, convictionManager);
+
+        freezeManager = new FreezeManager(this);
+
+        seenManager = new SeenManager(this);
+
+        itemModifierManager = new ItemModifierManager();
+
+        // commands
         registerCommands();
+
+        // listeners
         registerListeners();
 
         getLogger().info("NTUtils enabled.");
@@ -109,10 +117,6 @@ public class NTUtils extends JavaPlugin {
 
         seenManager = new SeenManager(this);
 
-        long afkThresholdMillis =
-                config.getLong("afk.threshold-seconds", 300) * 1000L;
-
-        afkManager = new AFKManager(this, afkThresholdMillis);
     }
 
     private void registerCommands() {
@@ -124,7 +128,7 @@ public class NTUtils extends JavaPlugin {
         getCommand("unfreeze").setExecutor(new UnfreezeCommand(freezeManager));
 
         getCommand("seen").setExecutor(new SeenCommand(seenManager));
-        getCommand("afk").setExecutor(new AFKCommand(afkManager));
+        getCommand("ntafk").setExecutor(new AFKCommand(afkManager));
     }
 
     private void registerListeners() {
