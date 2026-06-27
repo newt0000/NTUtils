@@ -1,0 +1,11 @@
+name: NTUtils
+description: $description
+prefix: [ Newts WorldPoints ]
+version: '${version}'
+
+main: com.newttech.ntutils.NTUtils
+api-version: '26.2'
+load: POSTWORLD
+
+authors: [ Newt_00 ]
+website: ycs.newt-tech.com
