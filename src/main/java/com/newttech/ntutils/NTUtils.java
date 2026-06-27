@@ -1,6 +1,11 @@
 package com.newttech.ntutils;
 
+import com.newttech.ntutils.command.*;
+import com.newttech.ntutils.listener.FreezeListener;
+import com.newttech.ntutils.listener.JailListener;
+import com.newttech.ntutils.listener.PlayerActivityListener;
 import com.newttech.ntutils.manager.*;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -40,19 +45,22 @@ public class NTUtils extends JavaPlugin {
         }
 
         saveDefaultConfig();
-
+        FileConfiguration config = getConfig();
         configManager = new ConfigManager(this);
         innocentManager = new InnocentManager(this);
-        convictionManager = new ConvictionManager(this);
-        jailManager = new JailManager(this);
-        freezeManager = new FreezeManager();
+        convictionManager = new ConvictionManager(config);
+        jailManager = new JailManager(
+                this,
+                config,
+                convictionManager
+        );
+        freezeManager = new FreezeManager(this);
         seenManager = new SeenManager(this);
-        afkManager = new AFKManager(this);
+        long afkThresholdMillis = config.getLong("afk.threshold-seconds", 300) * 1000L;
+        afkManager = new AFKManager(this, afkThresholdMillis);
 
         registerManagers();
-
         registerCommands();
-
         registerListeners();
 
         getLogger().info("NTUtils enabled.");
@@ -61,13 +69,10 @@ public class NTUtils extends JavaPlugin {
     @Override
     public void onDisable() {
 
-        convictionManager.save();
-
-        jailManager.save();
-
-        seenManager.save();
-
-        afkManager.save();
+        jailManager.shutdown();
+        freezeManager.shutdown();
+        seenManager.shutdown();
+        afkManager.shutdown();
 
     }
 
@@ -90,20 +95,54 @@ public class NTUtils extends JavaPlugin {
 
     private void registerManagers() {
 
-        // Future hook if needed.
+        FileConfiguration config = getConfig();
 
+        convictionManager = new ConvictionManager(config);
+
+        jailManager = new JailManager(
+                this,
+                config,
+                convictionManager
+        );
+
+        freezeManager = new FreezeManager(this);
+
+        seenManager = new SeenManager(this);
+
+        long afkThresholdMillis =
+                config.getLong("afk.threshold-seconds", 300) * 1000L;
+
+        afkManager = new AFKManager(this, afkThresholdMillis);
     }
 
     private void registerCommands() {
 
-        // Filled in once commands are created.
+        getCommand("jail").setExecutor(new JailCommand(jailManager, convictionManager));
+        getCommand("unjail").setExecutor(new UnjailCommand(jailManager));
 
+        getCommand("freeze").setExecutor(new FreezeCommand(freezeManager));
+        getCommand("unfreeze").setExecutor(new UnfreezeCommand(freezeManager));
+
+        getCommand("seen").setExecutor(new SeenCommand(seenManager));
+        getCommand("afk").setExecutor(new AFKCommand(afkManager));
     }
 
     private void registerListeners() {
 
-        // Filled in after listeners exist.
+        getServer().getPluginManager().registerEvents(
+                new PlayerActivityListener(afkManager),
+                this
+        );
 
+        getServer().getPluginManager().registerEvents(
+                new JailListener(jailManager),
+                this
+        );
+
+        getServer().getPluginManager().registerEvents(
+                new FreezeListener(freezeManager),
+                this
+        );
     }
 
     public ConfigManager getConfigManager() {
