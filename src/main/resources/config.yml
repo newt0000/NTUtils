@@ -1,0 +1,49 @@
+# NTUtils Core Configuration
+
+jail:
+  location:
+    world: world
+    x: 0.5
+    y: 80
+    z: 0.5
+    yaw: 0
+    pitch: 0
+
+  release:
+    world: world
+    x: 100
+    y: 80
+    z: 100
+
+  # Commands executed when a player is jailed
+  # Placeholders:
+  # %player% - player name
+  # %crime%  - reason for jail
+  # %cost%   - fine amount
+  on-jail-commands:
+    - "dbcast primary %player% was jailed for %crime% and fined %cost%"
+
+  # Commands executed when a player is released
+  # Placeholders:
+  # %player% - player name
+  on-release-commands:
+    - "dbcast primary %player% was released from jail"
+
+  enforce-radius: 5
+
+freeze:
+  enabled: true
+
+seen:
+  glow-color: AQUA
+  enforce-glow: true
+
+afk:
+  threshold-seconds: 300
+  prefix: "[AFK]"
+
+messages:
+  jailed: "&cYou have been jailed for &e%crime%"
+  released: "&aYou have been released"
+  frozen: "&bYou have been frozen"
+  unfrozen: "&aYou are no longer frozen"
